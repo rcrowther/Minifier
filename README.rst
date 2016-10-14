@@ -1,8 +1,8 @@
-IPMonitor
+Minifier
 =========
 Script-like Python-GTK interface for minifying CSS and JS.
 
-.. figure:: https://raw.githubusercontent.com/rcrowther/Minifier/master/text/minifier.png
+.. figure:: https://raw.githubusercontent.com/rcrowther/Minifier/master/text/minifier.jpg
     :width: 158 px
     :alt:Minifier screenshot
     :align: center
