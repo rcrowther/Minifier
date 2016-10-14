@@ -4,7 +4,7 @@ Script-like Python-GTK interface for minifying CSS and JS.
 
 .. figure:: https://raw.githubusercontent.com/rcrowther/Minifier/master/text/minifier.jpg
     :width: 158 px
-    :alt:Minifier screenshot
+    :alt: Minifier screenshot
     :align: center
 
     Only when the moon wanes
