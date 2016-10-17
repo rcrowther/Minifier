@@ -148,6 +148,7 @@ class MyWindow(Gtk.Window):
             
     def __init__(self):
         Gtk.Window.__init__(self, title="Minifier")
+        self.set_border_width(10)
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.box.set_homogeneous(False)
         self.add(self.box)
@@ -155,10 +156,10 @@ class MyWindow(Gtk.Window):
         # Model
         self.store = Gtk.ListStore(bool, str)
 
-
-
         # View
         self.listView = Gtk.TreeView(self.store)
+        self.box.pack_start(self.listView, True, True, 0)
+        
         r = Gtk.CellRendererToggle()
         # select = tree.get_selection()
         r.connect("toggled", self._on_list_toggle)
@@ -169,14 +170,13 @@ class MyWindow(Gtk.Window):
         self.nameColumn = Gtk.TreeViewColumn("BaseName", Gtk.CellRendererText(), text=1)
         self.listView.append_column(self.nameColumn)
         self.nameColumn.set_sort_column_id(1)
-        self.box.pack_start(self.listView, True, True, 0)
 
         self.spinner = Gtk.Spinner()
         self.box.pack_start(self.spinner, True, True, 0)
         
-        buttonbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        buttonbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
         buttonbox.set_homogeneous(False)
-        self.box.pack_start(buttonbox, True, True, 0)
+        self.box.pack_start(buttonbox, False, True, 0)
         
         self.button1 = Gtk.Button(label="Minify")
         self.button1.connect("clicked", self._minify)
