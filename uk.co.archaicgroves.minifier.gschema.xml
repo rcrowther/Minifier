@@ -1,15 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="gsettings-desktop-schemas">
   <schema path="/uk/co/archaicgroves/minifier/" id="uk.co.archaicgroves.minifier">
-    <key type="s" name="current-css">
-      <default>''</default>
-      <summary>Current selection of CSS files</summary>
-      <description>Selection of CSS files when last used.</description>
-    </key>
-    <key type="s" name="current-js">
-      <default>''</default>
-      <summary>Current selection of JS files</summary>
-      <description>Selection of JS files when last used.</description>
+    <!-- a(cssPath, jsPath, convPath, tmpFilePath) -->
+    <key type="a(ssss)" name="data">
+      <default>[]</default>
+      <summary>Data for each project</summary>
+      <description>Data, such as paths and converters, for each project.</description>
     </key>
   </schema>
 </schemalist>

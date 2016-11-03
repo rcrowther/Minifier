@@ -8,9 +8,8 @@ project/
 build/
 Doc/
 doc/
-src/test
+test/
 html/
-html.bck/
 
 
 # ignore tests
