@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="gsettings-desktop-schemas">
   <schema path="/uk/co/archaicgroves/minifier/" id="uk.co.archaicgroves.minifier">
-    <!-- a(cssPath, jsPath, convPath, tmpFilePath) -->
-    <key type="a(ssss)" name="data">
+    <!-- a(cssPath, jsPath, tmpFilePath, convTyp, yuiPath, slimmerAggressive) -->
+    <key type="a(sssisb)" name="data">
       <default>[]</default>
       <summary>Data for each project</summary>
       <description>Data, such as paths and converters, for each project.</description>

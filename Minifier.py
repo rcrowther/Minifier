@@ -6,8 +6,8 @@
 
 ## TODO:
 # YUI don't like empty JS files
-
-
+# _yuiAvailable should have functional test
+# settings
 
 import gi
 gi.require_version('Gtk', '3.0')
@@ -21,6 +21,11 @@ from datetime import datetime, date, time
 import os.path
 import shutil
 
+try:
+    import slimmer
+    slimmerAvailable = True
+except ImportError:
+    slimmerAvailable = False
 
 
 
@@ -53,6 +58,12 @@ GSCHEMA = "uk.co.archaicgroves.minifier"
 #CSS_KEY = 'current-css'
 #JS_KEY = 'current-js'
 DATA_KEY = 'data'
+
+#Enum for minify method 
+YUI = 0
+SLIMMER = 1
+
+
 # Used if files are concatenated - if only one name, 
 # the name is changed to <basename>-min.css
 DEFAULT_CSS_BASENAME = 'site-min.css'
@@ -60,8 +71,8 @@ DEFAULT_CSS_BASENAME = 'site-min.css'
 # the name is changed to <basename>-min.js
 DEFAULT_JS_BASENAME = 'site-min.js'
 
-# a(cssPath, jsPath, convPath, tmpFilePath)
-DATA_SIGNATURE = "a(ssss)"
+#<!-- a(cssPath, jsPath, tmpFilePath, convTyp, yuiPath, slimmerAggressive) -->
+DATA_SIGNATURE = "a(sssisb)"
 
 
 TMP_FILE_BASENAME = '.minifier.tmp'
@@ -111,6 +122,14 @@ def _concatFiles(sourcePaths, tmpPath):
         print(e)
     return success
     
+    
+        
+def yuiAvailable(execPath):
+    available = False
+    if (os.path.isfile(execPath)):
+        available = True
+    return available
+    
 def _yuiMinify(execPath, srcPath, dstPath, isCSS):
     tpe = "css" if (isCSS) else "js"
     success = False
@@ -123,9 +142,32 @@ def _yuiMinify(execPath, srcPath, dstPath, isCSS):
         print(e)
     return success
            
-           
-           
-            
+           ## conditional import?
+def _slimmerMinify(srcPath, dstPath, isCSS, hardcore):
+    tpe = "css" if (isCSS) else "js"
+    success = False
+    try:
+        #src = open(srcPath).read()
+        src = "".join(open(srcPath).readlines())
+        
+        modified = None
+        if(isCSS):
+            modified = slimmer.css_slimmer(src, hardcore)
+        else:
+            modified = slimmer.js_slimmer(src, hardcore)
+    
+        print(len(src), len(modified))
+        
+        #python slimmer.py [OPTIONS] /path/to/input.html [xhtml|html|css|js]
+        #cmd = ['python3 slimmer.py [OPTIONS] /path/to/input.html [xhtml|html|css|js]
+        with open(dstPath, 'w') as out:
+            out.write(modified)
+        success = True
+    except Exception as e:
+        print(e)
+    return success
+        
+        
                     
 class MyWindow(Gtk.Window):
 
@@ -170,6 +212,7 @@ class MyWindow(Gtk.Window):
         return [row[1] for row in self.store if (row[0])]
         
 
+        
     def minifyingPaths(self):
         ''' Rough test that all is ok with the executable and source paths.
         Used before minify, and on window init.
@@ -191,22 +234,61 @@ class MyWindow(Gtk.Window):
             else:
                 return (execPath, srcDir)
                 
-          
+    def srcPath(self):
+        ''' Rough test that all is ok with the source path.
+        Used before minify, and on window init.
+        '''
+        srcDir = ''
+        if (self.isCSSPopulated):
+            srcDir = self.cssPath.get_text()
+        else:
+            srcDir = self.jsPath.get_text()
+            
+        if (not os.path.isdir(srcDir)):
+            self.warning("source directory not readable?")
+            return None
+        else:
+            return srcDir
         
+        
+    def getActiveToggle(self, group):
+        i = 0
+        for b in reversed(group):
+            if b.get_active():
+                break
+            i += 1
+        return i
+          
+    def setActiveByIndex(self, group, index):
+        idx = len(group) - 1 - index
+        group[idx].set_active(True)
+        
+        
+                
     ## GSettings
     
     def saveSettings(self):
         cssPathStr = self.cssPath.get_text()
         jsPathStr = self.jsPath.get_text()
-        converterPathStr =  self.converterPath.get_text()
         tmpPathStr = self.tmpPath.get_text()
-        
-        data = [(cssPathStr, jsPathStr, converterPathStr, tmpPathStr)]
+                
+        converterTpe =  self.getActiveToggle(self.useGroup)
+        yuiPathStr =  self.converterPath.get_text()
+        slimmerAggressive = self.slimmerAggressive.get_active()
+
+        data = [(
+            cssPathStr,
+            jsPathStr,
+            tmpPathStr,
+            converterTpe,
+            yuiPathStr,
+            slimmerAggressive
+            )]
+            
         gsettingBackups = GLib.Variant(DATA_SIGNATURE, data)
         gsettings.set_value(DATA_KEY, gsettingBackups)
         
     def loadSettings(self):
-        #savedNames = gsettings.get_string(settingsKey).split(':')
         gsettingData = gsettings.get_value(DATA_KEY)
         if (len(gsettingData) == 0):
             self.message('no settings found')
@@ -214,14 +296,14 @@ class MyWindow(Gtk.Window):
             # Currently preset to load the first backup project
             #for group in gsettingRet:
             datum = gsettingData[0]
-            #print(': ' + datum[0])
-            #print(': ' + datum[1])
 
             self.cssPath.set_text(datum[0])
             self.jsPath.set_text(datum[1])
-            self.converterPath.set_text(datum[2])
-            self.tmpPath.set_text(datum[3])
+            self.tmpPath.set_text(datum[2])
 
+            self.setActiveByIndex(self.useGroup, datum[3])
+            self.converterPath.set_text(datum[4])
+            self.slimmerAggressive.set_active(datum[5])
 
         
     def cssPopulate(self):
@@ -265,7 +347,11 @@ class MyWindow(Gtk.Window):
       
                 
     ## Actions
-               
+    def _notebookSwitched(self, notebook, page, pageNum):
+        # clear status
+        self.clearStatus()
+        
+        
     def _onclick_cssjs(self, widget):
         self.clearStatus()
         self.jsPopulate() if (self.isCSSPopulated) else self.cssPopulate()
@@ -278,14 +364,12 @@ class MyWindow(Gtk.Window):
         if (len(sourceList) < 1):
             self.warning("no files to minify?")
         else:
-            paths = self.minifyingPaths()
-            if (paths is None):
+            srcDir = self.srcPath()
+            if (srcDir is None):
                 return
-            
-            execPath, srcDir  = paths
-
+                
             # Decide a basename (generic for concatenated files, 
-            # modified for a single file)
+            # src-modified for a single file)
             dstBaseName = 'Unnamed'
             if (len(sourceList) == 1):
                 bn = sourceList[0]
@@ -301,7 +385,6 @@ class MyWindow(Gtk.Window):
 
             # rejoin source basenames to the full path
             sourcePathList = [os.path.join(srcDir, bn) for bn in sourceList]
-            #print("srcs: "+  ' '.join(sourcePathList))
             tmpFilePath = self.tmpFilePath()
             success = _concatFiles(sourcePathList, tmpFilePath)
 
@@ -313,8 +396,27 @@ class MyWindow(Gtk.Window):
             else:
                 # Minify
                 dstPath = os.path.join(srcDir, dstBaseName)
-                success = _yuiMinify(execPath, tmpFilePath, dstPath, self.isCSSPopulated)
 
+                minifyUsing = self.getActiveToggle(self.useGroup)
+
+                print('minifyUsing = ' + str(minifyUsing))
+                
+                if(minifyUsing == YUI):
+                    yuiConverterPath = self.converterPath.get_text()
+
+                    if(not yuiAvailable(yuiConverterPath)):
+                        self.warning("YUI executable not successfully located?")
+                        return False
+                    else:
+                        success = _yuiMinify(yuiConverterPath, tmpFilePath, dstPath, self.isCSSPopulated)
+
+                if(minifyUsing == SLIMMER):
+                    if(not slimmerAvailable):
+                        self.warning("Slimmer not successfully imported?")
+                        return False
+                    else:
+                        success = _slimmerMinify(tmpFilePath, dstPath, self.isCSSPopulated, self.slimmerAggressive.get_active())
+ 
                 #_cleanTmp
                 os.remove(tmpFilePath) 
                 self.spinnerStop()
@@ -467,22 +569,7 @@ class MyWindow(Gtk.Window):
         self.jsPath = Gtk.Entry()
         self.jsPath.set_margin_bottom(8)
         box.pack_start(self.jsPath, False, True, 0)
-        
-        
-        convLabel = Gtk.Label()
-        convLabel.set_markup ("<b>Converter path</b>")
-        convLabel.set_halign(Gtk.Align.START)
-        box.pack_start(convLabel, False, True, 0)
 
-        selectConvButton = Gtk.Button(label="Select converter executable")
-        selectConvButton.connect("clicked", self._selectConverterFile)
-        box.pack_start(selectConvButton, False, True, 0)
-        
-        self.converterPath = Gtk.Entry()
-        self.converterPath.set_margin_bottom(8)
-        box.pack_start(self.converterPath, False, True, 0)
-        
-        
         tmpLabel = Gtk.Label()
         tmpLabel.set_markup("<b>Temporary directory</b>\n<i>if empty, uses the folder containing the converter</i>")
         tmpLabel.set_halign(Gtk.Align.START)
@@ -500,10 +587,51 @@ class MyWindow(Gtk.Window):
         return box
         
         
+    def converterPage(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        box.set_homogeneous(False)
+
+      
+        label = Gtk.Label()
+        label.set_markup ("<b>YUI</b>")
+        label.set_halign(Gtk.Align.START)
+        box.pack_start(label, False, True, 0)
+
+        rb = Gtk.RadioButton.new_with_label_from_widget(None, "YUI")
+        box.pack_start(rb, False, False, 0)
+
+        selectConvButton = Gtk.Button(label="Select YUI executable")
+        selectConvButton.connect("clicked", self._selectConverterFile)
+        box.pack_start(selectConvButton, False, True, 0)
         
+        self.converterPath = Gtk.Entry()
+        self.converterPath.set_margin_bottom(16)
+        box.pack_start(self.converterPath, False, True, 0)
+        
+        
+        label = Gtk.Label()
+        label.set_markup ("<b>Slimmer</b>")
+        label.set_halign(Gtk.Align.START)
+        box.pack_start(label, False, True, 0)
+        
+        rb = Gtk.RadioButton.new_from_widget(rb)
+        rb.set_label("Slimmer")
+        box.pack_start(rb, False, True, 0)
+        
+        self.slimmerAggressive = Gtk.CheckButton.new_with_label("Slimmer uses aggressive compression")
+        self.slimmerAggressive.set_margin_bottom(8)
+        box.pack_start(self.slimmerAggressive, False, False, 0)  
+        
+        self.useGroup = rb.get_group()
+        
+        return box
+
+
+
+
     def __init__(self):
         Gtk.Window.__init__(self, title="Minifier")
-        self.set_border_width(10)
+        #self.set_border_width(10)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         box.set_homogeneous(False)
         self.add(box)
@@ -512,14 +640,20 @@ class MyWindow(Gtk.Window):
         self.notebook = Gtk.Notebook()
         box.pack_start(self.notebook, True, True, 0)
 
-        page1 =  self.actionPage()
-        page1.set_border_width(10)
-        self.notebook.append_page(page1, Gtk.Label('Action'))
+        page =  self.actionPage()
+        page.set_border_width(10)
+        self.notebook.append_page(page, Gtk.Label('Action'))
         
-        page2 =  self.settingsPage()
-        page2.set_border_width(10)
-        self.notebook.append_page(page2, Gtk.Label('Settings'))
+        page =  self.settingsPage()
+        page.set_border_width(10)
+        self.notebook.append_page(page, Gtk.Label('Path settings'))
         
+        page = self.converterPage()
+        page.set_border_width(10)
+        self.notebook.append_page(page, Gtk.Label('Converter settings'))
+        
+        self.notebook.connect("switch-page", self._notebookSwitched)
+
         separator = Gtk.Separator()
         box.pack_start(separator, False, True, 4)
         
@@ -527,9 +661,14 @@ class MyWindow(Gtk.Window):
         statusbox.set_homogeneous(False)
 
         self.spinner = Gtk.Spinner()
+        self.spinner.set_margin_left(4)
+        self.spinner.set_margin_bottom(4)
         statusbox.pack_start(self.spinner, False, True, 0)
         
         self.statusbar = Gtk.Label()
+        self.statusbar.set_margin_left(4)
+        self.statusbar.set_margin_bottom(4)
+        
         statusbox.pack_start(self.statusbar, False, True, 0)
         
         box.pack_start(statusbox, True, True, 0)
