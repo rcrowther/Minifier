@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=0.0.1
+Name=Minifier
+Comment=Squash CSS/JS the easy way
+Encoding=UTF-8
+Categories=GTK;Development;Utility;
+Exec=minifier
+Icon=minifier
+Terminal=false
+StartupNotify=true
+
+

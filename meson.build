@@ -9,8 +9,10 @@ python_dep = find_program('python3')
 
 
 
-run_target('schema-uninstall', command : 'schema-uninstall.sh')
-run_target('schema-install', command : 'schema-install.sh')
+run_target('schema-uninstall', command : 'schema-uninstall')
+run_target('schema-install', command : 'schema-install')
 
+run_target('desktop-install', command : 'desktop-install')
+run_target('desktop-uninstall', command : 'desktop-uninstall')
 
 

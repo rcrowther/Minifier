@@ -474,7 +474,9 @@ class MyWindow(Gtk.Window):
                 (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                  "Select", Gtk.ResponseType.OK))
             dialog.set_default_size(800, 400)
-    
+            # contrary to GTK3 advice
+            dialog.set_current_folder(self.cssPath.get_text())
+            
             response = dialog.run()
             if response == Gtk.ResponseType.OK:
                 path = dialog.get_filename()
@@ -492,7 +494,9 @@ class MyWindow(Gtk.Window):
                 (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                  "Select", Gtk.ResponseType.OK))
             dialog.set_default_size(800, 400)
-    
+            # contrary to GTK3 advice
+            dialog.set_current_folder(self.jsPath.get_text())
+            
             response = dialog.run()
             if response == Gtk.ResponseType.OK:
                 path = dialog.get_filename()
@@ -671,7 +675,7 @@ class MyWindow(Gtk.Window):
         
         statusbox.pack_start(self.statusbar, False, True, 0)
         
-        box.pack_start(statusbox, True, True, 0)
+        box.pack_start(statusbox, False, True, 0)
     
 
 

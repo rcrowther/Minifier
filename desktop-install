@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# NB: unmodified MESON_BUILD_ROOT point to the top directory(?)
+bash ./schema-install
+
+cp "${MESON_SOURCE_ROOT}/Minifier.py" "/usr/local/bin/minifier"
+
+cp "${MESON_SOURCE_ROOT}/icons/minifier16x16.png" "/usr/share/icons/hicolor/16x16/apps/minifier.png"
+cp "${MESON_SOURCE_ROOT}/icons/minifier48x48.png" "/usr/share/icons/hicolor/48x48/apps/minifier.png"
+cp "${MESON_SOURCE_ROOT}/icons/minifier.svg" "/usr/share/icons/hicolor/scalable/apps/minifier.svg"
+
+# NB: user-specific  ~/.local/share/applications has been a flop for me
+cp "${MESON_SOURCE_ROOT}/uk.co.archaicgroves.minifier.desktop" "/usr/share/applications/uk.co.archaicgroves.minifier.desktop"
+gtk-update-icon-cache /usr/share/icons/hicolor/
