@@ -1,5 +1,26 @@
 = Install
-No build tools (thank goodness)
+== Meson
+
+=== Debain repository
+python-pip3
+
+pip3 install meson
+
+==== Ninja
+Get ninja and install. Will need a modern 'ninja'. Use pre-builds for 
+64bit, 32bit users will need to build their own (currently).
+
+==== Steps
+mkdir build
+/usr/local/bin/meson.py build
+cd build
+
+sudo ninja schema-install
+
+or,
+
+sudo ninja desktop-install
+
 
 == Requires
 Python3, GTK environment, YUI compressor/
@@ -9,16 +30,3 @@ https://github.com/yui/yuicompressor
 
 https://github.com/yui/yuicompressor/releases
 
-== Install the GSettings schema
-
-== Change internal settings
-Look in the script. All settings are annotated.
-
-Mostly, it will work without modification.
-
-== Run
-From a terminal,
- 
-./Minifier
-
-Select files, then minify.
