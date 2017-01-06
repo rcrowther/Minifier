@@ -8,6 +8,7 @@
 # YUI don't like empty JS files
 # _yuiAvailable should have functional test
 # settings
+# should be able to set order of files?
 
 import gi
 gi.require_version('Gtk', '3.0')
@@ -339,10 +340,14 @@ class MyWindow(Gtk.Window):
 
  
     def _on_list_toggle(self, renderer, path):
+        # perform the toggle in the view
         it = self.store.get_iter(path) 
         currentVal = self.store.get_value(it, 0)
         self.store.set_value(it, 0, not currentVal)
-       
+        #
+        #print (currentVal)
+        # change the targetname
+        self._setTargetName()
        
       
                 
@@ -356,7 +361,24 @@ class MyWindow(Gtk.Window):
         self.clearStatus()
         self.jsPopulate() if (self.isCSSPopulated) else self.cssPopulate()
              
-             
+    def _setTargetName(self):
+        sourceList = self.getSelected()
+        name = ''
+        if (len(sourceList) == 0):
+            pass
+        elif (len(sourceList) == 1):
+            bn = sourceList[0]
+            if (self.isCSSPopulated):
+                name = bn[0: len(bn) - 4] + '-min.css'
+            else:
+                name = bn[0: len(bn) - 3] + '-min.js' 
+        else:
+            name = DEFAULT_CSS_BASENAME if (self.isCSSPopulated) else DEFAULT_JS_BASENAME
+
+        self.targetName.set_text(name)
+        
+        
+        
     def _minify(self, widget):
         self.clearStatus()
         sourceList = self.getSelected()
@@ -366,20 +388,15 @@ class MyWindow(Gtk.Window):
         else:
             srcDir = self.srcPath()
             if (srcDir is None):
+                self.warning("no source directory path?")
                 return
                 
-            # Decide a basename (generic for concatenated files, 
-            # src-modified for a single file)
-            dstBaseName = 'Unnamed'
-            if (len(sourceList) == 1):
-                bn = sourceList[0]
-                if (self.isCSSPopulated):
-                    dstBaseName = bn[0: len(bn) - 4] + '-min.css'
-                else:
-                    dstBaseName = bn[0: len(bn) - 3] + '-min.js' 
-            else:
-                dstBaseName = DEFAULT_CSS_BASENAME if (self.isCSSPopulated) else DEFAULT_JS_BASENAME
-
+            # get destination basename
+            dstName = self.targetName.get_text().strip()
+            if (not dstName):
+                self.warning("no target filename?")
+                return
+                
             # Concatenate the files
             self.spinnerStart()
 
@@ -395,7 +412,7 @@ class MyWindow(Gtk.Window):
                 return False
             else:
                 # Minify
-                dstPath = os.path.join(srcDir, dstBaseName)
+                dstPath = os.path.join(srcDir, dstName)
 
                 minifyUsing = self.getActiveToggle(self.useGroup)
 
@@ -424,7 +441,7 @@ class MyWindow(Gtk.Window):
                 if (not success):
                     self.error("Unable to minify files?")
                 else:
-                    self.message("minified to {0}".format(dstBaseName))
+                    self.message("minified to {0}".format(dstName))
 
 
 
@@ -433,6 +450,16 @@ class MyWindow(Gtk.Window):
     def actionPage(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         box.set_homogeneous(False)
+        
+        # Target name
+        label = Gtk.Label()
+        label.set_text("target filename (can be modified)")
+        label.set_halign(Gtk.Align.START)  
+        box.pack_start(label, False, True, 0)
+        
+        self.targetName = Gtk.Entry()
+        self.targetName.set_margin_bottom(8)
+        box.pack_start(self.targetName, False, True, 0)
         
         # Model
         self.store = Gtk.ListStore(bool, str)
@@ -546,10 +573,10 @@ class MyWindow(Gtk.Window):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         box.set_homogeneous(False)
         
-        cssLabel = Gtk.Label()
-        cssLabel.set_markup ("<b>CSS directory</b>")
-        cssLabel.set_halign(Gtk.Align.START)  
-        box.pack_start(cssLabel, False, True, 0)
+        label = Gtk.Label()
+        label.set_markup ("<b>CSS directory</b>")
+        label.set_halign(Gtk.Align.START)  
+        box.pack_start(label, False, True, 0)
         
         selectCSSButton = Gtk.Button(label="Select CSS directory")
         selectCSSButton.connect("clicked", self._selectCSSFolder)
@@ -561,10 +588,10 @@ class MyWindow(Gtk.Window):
         
         
         
-        jsLabel = Gtk.Label()
-        jsLabel.set_markup ("<b>JS directory</b>")
-        jsLabel.set_halign(Gtk.Align.START)  
-        box.pack_start(jsLabel, False, True, 0)
+        label = Gtk.Label()
+        label.set_markup ("<b>JS directory</b>")
+        label.set_halign(Gtk.Align.START)  
+        box.pack_start(label, False, True, 0)
         
         selectJSButton = Gtk.Button(label="Select JS directory")
         selectJSButton.connect("clicked", self._selectJSFolder)
@@ -574,10 +601,10 @@ class MyWindow(Gtk.Window):
         self.jsPath.set_margin_bottom(8)
         box.pack_start(self.jsPath, False, True, 0)
 
-        tmpLabel = Gtk.Label()
-        tmpLabel.set_markup("<b>Temporary directory</b>\n<i>if empty, uses the folder containing the converter</i>")
-        tmpLabel.set_halign(Gtk.Align.START)
-        box.pack_start(tmpLabel, False, True, 0)
+        label = Gtk.Label()
+        label.set_markup("<b>Temporary directory</b>\n<i>if empty, uses the folder containing the converter</i>")
+        label.set_halign(Gtk.Align.START)
+        box.pack_start(label, False, True, 0)
         
         selectTmpButton = Gtk.Button(label="Select temporary file directory")
         selectTmpButton.connect("clicked", self._selectTmpFolder)
@@ -644,7 +671,7 @@ class MyWindow(Gtk.Window):
         self.notebook = Gtk.Notebook()
         box.pack_start(self.notebook, True, True, 0)
 
-        page =  self.actionPage()
+        page = self.actionPage()
         page.set_border_width(10)
         self.notebook.append_page(page, Gtk.Label('Action'))
         
